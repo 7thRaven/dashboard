@@ -58,17 +58,11 @@ export default {
       self.yAxisGroup.call(self.yAxisCall)
 
       // data joinning
-      // let circles = self.g.selectAll('circle')
-      //   .data(data, function (d) {
-      //     return d.month
-      //   })
+      let circles = self.g.selectAll('circle')
+        .data(countries)
 
-      // // delete old items not in our current data
-      // circles.exit()
-      //   .attr('fill', 'red')
-      //   .transition(self.transition)
-      //   .attr('cy', self.y(0))
-      //   .remove()
+      // delete old items not in our current data
+      circles.exit().remove()
 
       // Update our existing values
       // rects
@@ -85,22 +79,16 @@ export default {
       //   })
 
       // Enter new items in our data (
-      // circles.enter()
-      //   .append('circle')
-      //   .attr('cx', function (d) {
-      //     return self.x(d.month) + self.x.bandwidth() / 2
-      //   })
-      //   .attr('cy', self.y(0))
-      //   .attr('r', 5)
-      //   .attr('fill', 'grey')
-      //   .merge(circles)
-      //   .transition(self.transition)
-      //   .attr('cy', function (d) {
-      //     return self.y(d[value])
-      //   })
-      //   .attr('cx', function (d) {
-      //     return self.x(d.month) + self.x.bandwidth() / 2
-      //   })
+      circles.enter()
+        .append('circle')
+        .attr('cx', function (d) {
+          return self.x(d.income)
+        })
+        .attr('cy', function (d) {
+          return self.y(d.life_exp)
+        })
+        .attr('r', 5)
+        .attr('fill', 'grey')
     }
   },
 
