@@ -13,7 +13,7 @@ export default {
   data () {
     return {
       margin: {left: 100, top: 10, right: 10, bottom: 150},
-      width: 500,
+      width: 1000,
       height: 500,
       svg: null,
       g: null,
@@ -35,38 +35,40 @@ export default {
   methods: {
     update (data) {
       let self = this
-      let value = self.flag ? 'revenue' : 'profit'
-      let label = self.flag ? 'Revenue' : 'Profit'
+      // let value = self.flag ? 'revenue' : 'profit'
+      // let label = self.flag ? 'Revenue' : 'Profit'
+
+      let countries = data.countries
+      // let year = data.year
 
       // adjusting our scales to varying sources of data
-      self.x.domain(data.map(d => d.month))
-      self.y.domain([0, d3.max(data.map(d => d[value]))])
+      self.x.domain([d3.min(countries.map(c => c.income)),
+        d3.max(countries.map(c => c.income))])
+      self.y.domain([0, d3.max(countries.map(c => c.life_exp))])
 
       // defining our axes and attaching them to our groups
       self.xAxisCall = d3.axisBottom(self.x)
-      self.xAxisGroup.transition(self.transition).call(self.xAxisCall)
+        .tickValues([400, 4000, 40000])
+        .tickFormat(function (d) {
+          return '$' + d
+        })
+      self.xAxisGroup.call(self.xAxisCall)
 
       self.yAxisCall = d3.axisLeft(self.y)
-        .tickFormat(function (d) {
-          return d + '$'
-        })
-      self.yAxisGroup.transition(self.transition).call(self.yAxisCall)
-
-      // updating the label of our y axis
-      self.xLabel.text(label)
+      self.yAxisGroup.call(self.yAxisCall)
 
       // data joinning
-      let circles = self.g.selectAll('circle')
-        .data(data, function (d) {
-          return d.month
-        })
+      // let circles = self.g.selectAll('circle')
+      //   .data(data, function (d) {
+      //     return d.month
+      //   })
 
-      // delete old items not in our current data
-      circles.exit()
-        .attr('fill', 'red')
-        .transition(self.transition)
-        .attr('cy', self.y(0))
-        .remove()
+      // // delete old items not in our current data
+      // circles.exit()
+      //   .attr('fill', 'red')
+      //   .transition(self.transition)
+      //   .attr('cy', self.y(0))
+      //   .remove()
 
       // Update our existing values
       // rects
@@ -83,22 +85,22 @@ export default {
       //   })
 
       // Enter new items in our data (
-      circles.enter()
-        .append('circle')
-        .attr('cx', function (d) {
-          return self.x(d.month) + self.x.bandwidth() / 2
-        })
-        .attr('cy', self.y(0))
-        .attr('r', 5)
-        .attr('fill', 'grey')
-        .merge(circles)
-        .transition(self.transition)
-        .attr('cy', function (d) {
-          return self.y(d[value])
-        })
-        .attr('cx', function (d) {
-          return self.x(d.month) + self.x.bandwidth() / 2
-        })
+      // circles.enter()
+      //   .append('circle')
+      //   .attr('cx', function (d) {
+      //     return self.x(d.month) + self.x.bandwidth() / 2
+      //   })
+      //   .attr('cy', self.y(0))
+      //   .attr('r', 5)
+      //   .attr('fill', 'grey')
+      //   .merge(circles)
+      //   .transition(self.transition)
+      //   .attr('cy', function (d) {
+      //     return self.y(d[value])
+      //   })
+      //   .attr('cx', function (d) {
+      //     return self.x(d.month) + self.x.bandwidth() / 2
+      //   })
     }
   },
 
@@ -109,7 +111,7 @@ export default {
     self.gWidth = self.width - self.margin.left - self.margin.right
     self.gHeight = self.height - self.margin.top - self.margin.bottom
 
-    self.transition = d3.transition().duration(750)
+    // self.transition = d3.transition().duration(750)
 
     self.svg = d3.select('#chart_area')
       .append('svg')
@@ -125,10 +127,9 @@ export default {
     self.y = d3.scaleLinear()
       .range([self.gHeight, 0])
 
-    self.x = d3.scaleBand()
+    self.x = d3.scaleLog()
       .range([0, self.gWidth])
-      .paddingInner(0.3)
-      .paddingOuter(0.3)
+      .base(10)
 
     // define our axes groups
     self.xAxisGroup = self.g.append('g')
@@ -141,7 +142,7 @@ export default {
       .attr('x', self.gWidth / 2)
       .attr('y', self.gHeight + 50)
       .attr('text-anchor', 'middle')
-      .text('Month')
+      .text('GDP Per Capita ($)')
 
     self.xLabel = self.g.append('text')
       .attr('font-size', '20px')
@@ -149,38 +150,43 @@ export default {
       .attr('x', -self.gHeight / 2)
       .attr('y', -60)
       .attr('text-anchor', 'middle')
+      .text('Life Expentancy (Years)')
 
     // new
     d3.json('static/data/data.json')
       .then(function (data) {
         data.forEach(function (item) {
-          console.log(item.countries.filter(d => (d.income != null && d.life_exp != null)))
+          item.countries = item.countries.filter(d => (d.income != null &&
+            d.life_exp != null && d.population != null))
         })
+        let firstYear = data[0]
+        // first rendering
+        self.update(firstYear)
       })
       .catch(function (err) {
         console.log(err)
       })
 
     // read the data
-    d3.json('static/data/revenue.json')
-      .then(function (data) {
-        data.forEach(function (d) {
-          d.revenue = +d.revenue
-          d.profit = +d.profit
-        })
-        // updating
-        d3.interval(function () {
-          self.flag = !self.flag
-          let newData = self.flag ? data : data.slice(1)
-          self.update(newData)
-        }, 1000)
+    // d3.json('static/data/revenue.json')
+    //   .then(function (data) {
+    //     data.forEach(function (d) {
+    //       d.revenue = +d.revenue
+    //       d.profit = +d.profit
+    //     })
+    //     // updating
+    //     d3.interval(function () {
+    //       self.flag = !self.flag
+    //       let newData = self.flag ? data : data.slice(1)
+    //       self.update(newData)
+    //     }, 1000)
 
-        // first time rendering
-        self.update(data)
-      })
-      .catch(function (err) {
-        console.log(err)
-      })
+    //     // first time rendering
+    //     self.update(data)
+    //   })
+    //   .catch(function (err) {
+    //     console.log(err)
+    //   })
   }
 }
 </script>
